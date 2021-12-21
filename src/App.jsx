@@ -1,15 +1,51 @@
-import React, { useState } from 'react';
+import React, { Component } from 'react';
+import {stor} from './firebase';
 
 import './App.css';
 import Upload from './images/upload.svg';
 
+class App extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      image: null,
+      url: '',
+      progress: 0
+    }
+    this.handleChange = this.handleChange.bind(this);
 
-function App() {
-  
-  const [img, setImg] = useState({});
-  console.log(img)
-  return (
-    <div className="App">
+    this.handleUpload = this.handleUpload.bind(this);
+  }
+
+  handleChange = e => {
+    if(e.target.files[0]) {
+      const image = e.target.files[0];
+      this.setState(() => ({image}))
+    }
+  }
+
+  handleUpload = () => {
+    const {image} = this.state;
+    const uploadTask = stor.ref(`images/${image.name}`).put(image);
+    uploadTask.on('state_change', 
+    (snapshot) => {
+      const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+      this.setState({progress})
+    }, 
+    (error) => {
+      console.log(error)
+    }, 
+    () => {
+      stor.ref('images').child(image.name).getDownloadURL().then(url => {
+          console.log(url);
+          this.setState({url})
+      })
+    });
+  }
+
+  render() {
+    return (
+      <div className="App">
       <header className="App-header">
         <div className='container'>
 
@@ -17,7 +53,7 @@ function App() {
           <div
             className='block-type'
             >
-            <img 
+            <img
               src={Upload}
               className='image'
               alt="upload image"
@@ -32,7 +68,7 @@ function App() {
               </label>
               &nbsp;it manually
             </p>
-
+            
            
           </div>
 
@@ -40,15 +76,30 @@ function App() {
               type="file"
               id="upload-image"
               className='input-type'
-              onChange={(e) => {setImg(e.target.files[0])}}
+              onChange={this.handleChange}
+              
             />
+            <button 
+            onClick={this.handleUpload}
+            >Upload</button>
+            <img
+              src={this.state.url || Upload}
+              alt="uloade image"
+              height="300"
+              width="400"
+              ></img>
+              <progress value={this.state.progress} max="100" />
+              <div>{this.state.progress}</div>
+
         </div>
         <footer className='footer-type'>
           Upload your image file, up to 5mb in size
         </footer>
       </header>
     </div>
-  );
+    )
+  }
 }
+
 
 export default App;
